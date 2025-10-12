@@ -6,11 +6,11 @@ Provides persistent storage for events before business processing.
 """
 
 from datetime import datetime, timezone
-from typing import Optional
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from sqlalchemy import (
     CheckConstraint,
+    Column,
     DateTime,
     Index,
     Integer,
@@ -19,12 +19,13 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, declarative_mixin
 from sqlalchemy.sql import func
 from sqlalchemy.types import JSON, TypeDecorator
 
 
 class Base(DeclarativeBase):
+    """Default Base for standalone EventFlow usage."""
     pass
 
 
@@ -45,41 +46,42 @@ class JSONBCompat(TypeDecorator):
         return dialect.type_descriptor(JSON())
 
 
-class EventInbox(Base):
+@declarative_mixin
+class EventInboxMixin:
     """
-    Transactional inbox for event storage.
-
-    Stores events from Redis Streams before business processing to ensure
-    exactly-once processing semantics and reliable recovery.
+    Mixin for EventInbox that can be used with any SQLAlchemy Base.
+    
+    Use this when you want to use your own declarative base.
+    
+    Example:
+        from eventflow.patterns.inbox.models import EventInboxMixin
+        from my_app.models import Base
+        
+        class MyEventInbox(EventInboxMixin, Base):
+            __tablename__ = "my_event_inbox"
     """
 
     __tablename__ = "event_inbox"
 
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
-    event_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    stream_id: Mapped[str] = mapped_column(String(255), nullable=False)
-    event_type: Mapped[str] = mapped_column(String(128), nullable=False)
-    aggregate_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
-    correlation_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    occurred_on: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    payload: Mapped[dict] = mapped_column(JSONBCompat(), nullable=False)
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    event_id = Column(String(255), nullable=False, unique=True)
+    stream_id = Column(String(255), nullable=False)
+    event_type = Column(String(128), nullable=False)
+    aggregate_id = Column(PGUUID(as_uuid=True), nullable=False)
+    correlation_id = Column(String(255), nullable=True)
+    occurred_on = Column(DateTime(timezone=True), nullable=False)
+    payload = Column(JSONBCompat(), nullable=False)
 
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
-    retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    max_retries: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    status = Column(String(50), nullable=False, default="pending")
+    retry_count = Column(Integer, nullable=False, default=0)
+    max_retries = Column(Integer, nullable=False, default=3)
 
-    received_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    next_retry_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    received_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    processed_at = Column(DateTime(timezone=True), nullable=True)
+    next_retry_at = Column(DateTime(timezone=True), nullable=True)
 
-    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    last_error_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    error_message = Column(Text, nullable=True)
+    last_error_at = Column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         UniqueConstraint("event_id", name="uq_event_inbox_event_id"),
@@ -128,3 +130,16 @@ class EventInbox(Base):
         self.last_error_at = datetime.now(tz=timezone.utc)
         self.next_retry_at = retry_at
         self.retry_count = retry_count
+
+
+class EventInbox(EventInboxMixin, Base):
+    """
+    Transactional inbox for event storage (standalone version).
+
+    Stores events from Redis Streams before business processing to ensure
+    exactly-once processing semantics and reliable recovery.
+    
+    This uses EventFlow's default Base. If you want to use your own Base,
+    use EventInboxMixin instead.
+    """
+    pass
