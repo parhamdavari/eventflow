@@ -34,6 +34,7 @@ mypy = "^1.9"
 black = "^24.0"
 ruff = "^0.3"
 asyncpg = "^0.29"  # For PostgreSQL async support
+aiosqlite = "^0.19"  # For SQLite async support in tests
 
 [build-system]
 requires = ["poetry-core"]
@@ -52,6 +53,7 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+plugins = ["sqlalchemy.ext.mypy.plugin"]
 
 [tool.black]
 line-length = 100
