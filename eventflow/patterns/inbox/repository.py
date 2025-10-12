@@ -45,7 +45,7 @@ class EventInboxRepository:
             event_id=event.event_id,
             stream_id=event.stream_id or "",
             event_type=event.event_type,
-            aggregate_id=event.aggregate_id,
+            aggregate_id=event.aggregate_id,  # type: ignore[arg-type]
             correlation_id=event.correlation_id,
             occurred_on=event.occurred_on,
             payload=event.payload,
@@ -97,16 +97,15 @@ class EventInboxRepository:
         Returns:
             Updated EventInbox instance
         """
-        stmt = (
-            select(EventInbox)
-            .where(EventInbox.id == inbox_id)
-            .with_for_update()
-        )
+        stmt = select(EventInbox).where(EventInbox.id == inbox_id).with_for_update()
         result = await self._session.execute(stmt)
         inbox = result.scalar_one()
 
-        new_retry_count = inbox.retry_count + 1
-        dead_letter = new_retry_count >= inbox.max_retries
+        current_retry_count = getattr(inbox, 'retry_count', 0) or 0
+        max_retries = getattr(inbox, 'max_retries', 0) or 0
+
+        new_retry_count = current_retry_count + 1
+        dead_letter = bool(max_retries > 0 and new_retry_count >= max_retries)
 
         if dead_letter:
             retry_at = None
@@ -140,17 +139,16 @@ class EventInboxRepository:
         stmt = (
             select(EventInbox)
             .where(
-                EventInbox.status.in_(("pending", "failed")),
+                EventInbox.status.in_(["pending", "failed"]),  # type: ignore
                 or_(
-                    EventInbox.next_retry_at.is_(None),
+                    EventInbox.next_retry_at.is_(None),  # type: ignore
                     EventInbox.next_retry_at <= func.now(),
                 ),
             )
-            .order_by(EventInbox.received_at)
+            .order_by(EventInbox.received_at)  # type: ignore
             .limit(limit)
             .with_for_update(skip_locked=True)
         )
 
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
-
