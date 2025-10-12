@@ -48,7 +48,7 @@ class JSONBCompat(TypeDecorator):
 class EventInbox(Base):
     """
     Transactional inbox for event storage.
-    
+
     Stores events from Redis Streams before business processing to ensure
     exactly-once processing semantics and reliable recovery.
     """
@@ -68,12 +68,18 @@ class EventInbox(Base):
     retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     max_retries: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
 
-    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
     processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    next_retry_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_retry_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    last_error_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     __table_args__ = (
         UniqueConstraint("event_id", name="uq_event_inbox_event_id"),

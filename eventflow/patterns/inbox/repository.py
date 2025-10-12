@@ -101,8 +101,8 @@ class EventInboxRepository:
         result = await self._session.execute(stmt)
         inbox = result.scalar_one()
 
-        current_retry_count = getattr(inbox, 'retry_count', 0) or 0
-        max_retries = getattr(inbox, 'max_retries', 0) or 0
+        current_retry_count = getattr(inbox, "retry_count", 0) or 0
+        max_retries = getattr(inbox, "max_retries", 0) or 0
 
         new_retry_count = current_retry_count + 1
         dead_letter = bool(max_retries > 0 and new_retry_count >= max_retries)

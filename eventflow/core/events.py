@@ -110,4 +110,3 @@ class BaseEvent:
             causation_id=data.get("causation_id"),
             stream_id=data.get("stream_id"),
         )
-

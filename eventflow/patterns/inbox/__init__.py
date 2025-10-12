@@ -5,4 +5,3 @@ from eventflow.patterns.inbox.models import EventInbox
 from eventflow.patterns.inbox.repository import EventInboxRepository
 
 __all__ = ["InboxConsumer", "EventInbox", "EventInboxRepository"]
-

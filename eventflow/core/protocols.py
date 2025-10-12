@@ -78,9 +78,7 @@ class Transport(Protocol):
         """
         ...
 
-    async def acknowledge(
-        self, stream_name: str, consumer_group: str, message_id: str
-    ) -> None:
+    async def acknowledge(self, stream_name: str, consumer_group: str, message_id: str) -> None:
         """
         Acknowledge processing of a message.
 
@@ -97,4 +95,3 @@ class Transport(Protocol):
     async def close(self) -> None:
         """Close the transport connection."""
         ...
-

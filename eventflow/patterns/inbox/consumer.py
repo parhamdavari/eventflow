@@ -30,13 +30,13 @@ logger = logging.getLogger(__name__)
 class InboxConsumer:
     """
     Transactional Inbox consumer for reliable event processing.
-    
+
     Implements the Inbox pattern:
     1. Pull events from Redis Streams
     2. Store in database inbox (durability)
     3. Process through business handlers
     4. Handle retries and dead-letter events
-    
+
     Extracted from production code in rasa-mach project.
     """
 
@@ -271,4 +271,3 @@ class InboxConsumer:
         return (value.startswith("{") and value.endswith("}")) or (
             value.startswith("[") and value.endswith("]")
         )
-

@@ -13,4 +13,3 @@ MessageID = str
 
 # Status types
 EventStatus = str  # "pending", "processing", "processed", "failed", "dead_letter"
-

@@ -15,7 +15,7 @@ import redis.asyncio as redis
 class RedisStreamsTransport:
     """
     Redis Streams transport for EventFlow.
-    
+
     Provides connection management and basic operations for Redis Streams.
     """
 
@@ -75,7 +75,7 @@ class RedisStreamsTransport:
     async def client(self) -> AsyncIterator[redis.Redis]:
         """
         Async context manager that yields a Redis client and closes it afterwards.
-        
+
         Usage:
             async with transport.client() as client:
                 await client.xadd(...)
@@ -91,4 +91,3 @@ class RedisStreamsTransport:
         if self._client:
             await self._client.aclose()
             self._client = None
-
