@@ -1,74 +1,137 @@
-# EventFlow
+<h1 align="center">EventFlow</h1>
 
-**Production-ready event-driven architecture toolkit for Python microservices.**
+<p align="center">
+  Production-ready event-driven infrastructure for Python microservices.<br/>
+  Reliable consumption with the <strong>Transactional Inbox</strong> pattern on top of <strong>Redis Streams</strong> + <strong>SQLAlchemy</strong>.
+</p>
 
-EventFlow provides battle-tested infrastructure components for building reliable event-driven systems using the **Transactional Inbox/Outbox patterns**.
+---
 
-## 🎯 Features
+[![PyPI version](https://badge.fury.io/py/eventflow.svg)](https://badge.fury.io/py/eventflow)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-- ✅ **Transactional Inbox Pattern** - Reliable event consumption with exactly-once semantics
-- ✅ **Redis Streams Transport** - Production-ready transport with consumer groups
-- ✅ **Automatic Retries** - Exponential backoff with configurable dead-letter handling
-- ✅ **Concurrent Processing** - Multiple workers with `SELECT FOR UPDATE SKIP LOCKED`
-- ✅ **Type-Safe** - Full type hints and mypy support
-- ✅ **Battle-Tested** - Extracted from production code at rasa-mach
-- 🚧 **Transactional Outbox Pattern** - Coming soon (producer side)
+`eventflow` is a small, battle-tested toolkit for building reliable event-driven services. It focuses on the **consumer side**: it ingests events from Redis Streams, stores them in a durable inbox table, and processes them with retries and dead-lettering.
 
-## 📦 Installation
+> Note: the producer-side **Transactional Outbox** is intentionally not implemented yet (`OutboxPublisher` raises `NotImplementedError`).
+
+###
+
+### Quick Start
+
+Install:
 
 ```bash
-pip install eventflow
+pip install eventflow asyncpg
 ```
 
-## 🚀 Quick Start
+`asyncpg` is the PostgreSQL async driver used in the examples; you can use a different SQLAlchemy async driver if needed.
 
-### Consumer Side (Inbox Pattern)
-
-```python
-from eventflow import InboxConsumer
-from eventflow.transports import RedisStreamsTransport
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-
-# Your business logic handlers
-class MyEventHandlers:
-    async def handle_event(self, session, inbox):
-        # Process the event
-        print(f"Processing {inbox.event_type}: {inbox.payload}")
-
-# Setup
-engine = create_async_engine("postgresql+asyncpg://localhost/mydb")
-session_factory = async_sessionmaker(engine, expire_on_commit=False)
-redis_client = RedisStreamsTransport(host="localhost").build_client()
-
-# Create consumer
-consumer = InboxConsumer(
-    redis_client=redis_client,
-    session_factory=session_factory,
-    stream_name="my-events",
-    consumer_group="my-service",
-    consumer_name_prefix="worker",
-    event_handlers=MyEventHandlers()
-)
-
-# Start consuming
-await consumer.start()
-```
-
-### Database Schema
-
-EventFlow requires an `event_inbox` table. Create it with:
+Create the inbox table (standalone usage):
 
 ```python
+from sqlalchemy.ext.asyncio import create_async_engine
 from eventflow.patterns.inbox.models import Base
 
-# Create tables
+engine = create_async_engine("postgresql+asyncpg://postgres:1234@localhost:5432/mydb")
+
 async with engine.begin() as conn:
     await conn.run_sync(Base.metadata.create_all)
 ```
 
-Or use this SQL:
+Run a consumer:
+
+```python
+from eventflow import InboxConsumer, RedisStreamsTransport
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+
+class Handlers:
+    async def handle_event(self, session, inbox):
+        print(inbox.event_type, inbox.payload)
+
+engine = create_async_engine("postgresql+asyncpg://postgres:1234@localhost:5432/mydb")
+Session = async_sessionmaker(engine, expire_on_commit=False)
+
+redis = RedisStreamsTransport(host="localhost", port=6379).build_client()
+
+consumer = InboxConsumer(
+    redis_client=redis,
+    session_factory=Session,
+    stream_name="my-events",
+    consumer_group="my-service",
+    consumer_name_prefix="worker",
+    event_handlers=Handlers(),
+)
+
+await consumer.start()
+```
+
+### Features
+
+*   **Transactional Inbox (Exactly-once processing)**: idempotent persistence keyed by `event_id`.
+*   **Redis Streams transport**: consumer groups + acknowledgement handling.
+*   **Safe concurrency**: workers cooperate via `SELECT ... FOR UPDATE SKIP LOCKED`.
+*   **Retries + dead-lettering**: exponential backoff capped at 15 minutes.
+*   **Type-safe event model**: `BaseEvent` + `EventMetadata`, full type hints and mypy support.
+*   **SQLite-friendly tests**: JSON payloads fall back cleanly for unit tests (`JSONBCompat`).
+
+### Architecture Flow
+
+```mermaid
+flowchart LR
+    Producer[Producer] --> Stream[(Redis Stream)]
+
+    subgraph Consumers["Consumers (same consumer group)"]
+        C1[InboxConsumer]
+        C2[InboxConsumer]
+    end
+
+    Stream -->|XREADGROUP| C1
+    Stream -->|XREADGROUP| C2
+
+    C1 -->|insert_pending<br/>(idempotent)| Inbox[(event_inbox)]
+    C2 -->|insert_pending<br/>(idempotent)| Inbox
+
+    Inbox -->|acquire_due_events<br/>(SKIP LOCKED)| C1
+    Inbox -->|acquire_due_events<br/>(SKIP LOCKED)| C2
+
+    C1 --> Handler[Your handler<br/>handle_event(session, inbox)]
+    C2 --> Handler
+
+    Handler -->|success| Inbox
+    Handler -->|failure<br/>schedule retry / dead-letter| Inbox
+```
+
+### Event Format
+
+The consumer supports two common Redis Stream payload styles:
+
+1) A single `data` field containing JSON (recommended):
+
+```bash
+redis-cli XADD my-events '*' data '{"event_id":"e-1","event_type":"OrderCreated","aggregate_id":"7c8f0a6a-7b7c-4c74-9cfb-2e2e2b9b1d33","occurred_on":"2025-01-01T00:00:00Z","payload":{"order_id":"o-123"}}'
+```
+
+2) A “flattened” entry with top-level fields (`event_id`, `event_type`, ...).
+
+### Schema Options
+
+If you already have your own SQLAlchemy `Base`, use the mixin:
+
+```python
+from eventflow.patterns.inbox.models import EventInboxMixin
+
+class EventInbox(EventInboxMixin, YourBase):
+    __tablename__ = "event_inbox"
+```
+
+<details>
+  <summary>PostgreSQL SQL schema (reference)</summary>
 
 ```sql
+-- For gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE event_inbox (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id VARCHAR(255) NOT NULL UNIQUE,
@@ -95,129 +158,23 @@ CREATE UNIQUE INDEX uq_event_inbox_event_id ON event_inbox(event_id);
 CREATE INDEX ix_event_inbox_status_next_retry ON event_inbox(status, next_retry_at);
 CREATE INDEX ix_event_inbox_aggregate_received ON event_inbox(aggregate_id, received_at);
 ```
+</details>
 
-## 📚 Architecture
+### Configuration & Tuning
 
-EventFlow follows a layered architecture:
+- Batch size: `InboxConsumer.BATCH_SIZE` (default: `10`)
+- Read block time: `InboxConsumer.BLOCK_MS` (default: `1000`)
+- Retry policy: stored per row (`max_retries`, `retry_count`, `next_retry_at`); backoff is exponential and capped at 15 minutes.
 
-```
-eventflow/
-├── core/           # Pure abstractions (BaseEvent, protocols)
-├── transports/     # Pluggable transports (Redis Streams, future: Kafka)
-├── patterns/       # Reliability patterns (Inbox, Outbox)
-│   ├── inbox/      # Consumer-side reliability
-│   └── outbox/     # Producer-side reliability (coming soon)
-└── utils/          # Utilities and errors
-```
-
-### Design Principles
-
-1. **Dependency Inversion** - Core has no external dependencies
-2. **Open/Closed** - Easy to extend with new transports
-3. **Single Responsibility** - Each module has one job
-4. **Battle-Tested** - Extracted from production systems
-
-## 🔄 How It Works
-
-### Transactional Inbox Pattern
-
-1. **Pull** events from Redis Streams
-2. **Store** in database inbox (atomic, idempotent)
-3. **Process** through business handlers
-4. **Retry** on failure with exponential backoff
-5. **Dead-letter** after max retries
-
-```
-Redis Stream → Inbox Table → Business Logic → Mark Processed
-       ↓            ↓              ↓
-    Durable    Idempotent    Exactly-once
-```
-
-### Reliability Guarantees
-
-- **Exactly-once processing** - Duplicate detection via event_id
-- **At-least-once delivery** - Redis Streams with consumer groups
-- **Automatic recovery** - Failed events retry with backoff
-- **Concurrent processing** - Multiple workers cooperate safely
-
-## 🛠️ Configuration
-
-### Retry Strategy
-
-```python
-# Default: 3 retries with exponential backoff
-# Backoff: 60s, 120s, 240s (capped at 15 minutes)
-
-# Customize in EventInbox model
-inbox.max_retries = 5  # Increase retries
-```
-
-### Batch Size
-
-```python
-# Default: 10 events per batch
-consumer.BATCH_SIZE = 20  # Process more events per batch
-```
-
-### Consumer Groups
-
-Multiple workers can share the load:
-
-```python
-# Worker 1
-consumer = InboxConsumer(..., consumer_name_prefix="worker-1")
-
-# Worker 2
-consumer = InboxConsumer(..., consumer_name_prefix="worker-2")
-
-# Both workers read from the same stream in parallel
-```
-
-## 🧪 Testing
-
-EventFlow is thoroughly tested. Run tests:
+### Development
 
 ```bash
 poetry install
 poetry run pytest
+poetry run mypy eventflow
+poetry run black --check eventflow tests
 ```
 
-## 📖 Documentation
+### License
 
-- [Architecture Guide](docs/architecture.md)
-- [API Reference](docs/api.md)
-- [Migration from rasa-mach](docs/migration.md)
-
-## 🤝 Contributing
-
-Contributions welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Run `poetry run pytest` and `poetry run mypy`
-5. Submit a pull request
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file.
-
-## 🙏 Credits
-
-Extracted from production code at **rasa-mach** project. 
-Battle-tested in real-world microservices architecture.
-
-## 🔮 Roadmap
-
-- [x] Transactional Inbox pattern
-- [x] Redis Streams transport
-- [ ] Transactional Outbox pattern (producer side)
-- [ ] Kafka transport
-- [ ] Observability hooks (metrics, tracing)
-- [ ] CloudEvents support
-- [ ] Dead-letter queue management UI
-
----
-
-**Made with ❤️ for reliable distributed systems**
-
+MIT License. See `LICENSE`.
