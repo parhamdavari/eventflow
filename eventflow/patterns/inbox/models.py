@@ -50,13 +50,13 @@ class JSONBCompat(TypeDecorator):
 class EventInboxMixin:
     """
     Mixin for EventInbox that can be used with any SQLAlchemy Base.
-    
+
     Use this when you want to use your own declarative base.
-    
+
     Example:
         from eventflow.patterns.inbox.models import EventInboxMixin
         from my_app.models import Base
-        
+
         class MyEventInbox(EventInboxMixin, Base):
             __tablename__ = "my_event_inbox"
     """
@@ -138,8 +138,9 @@ class EventInbox(EventInboxMixin, Base):
 
     Stores events from Redis Streams before business processing to ensure
     exactly-once processing semantics and reliable recovery.
-    
+
     This uses EventFlow's default Base. If you want to use your own Base,
     use EventInboxMixin instead.
     """
+
     pass

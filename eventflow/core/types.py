@@ -1,6 +1,4 @@
-"""
-Common type definitions for EventFlow.
-"""
+"""Common type definitions for EventFlow."""
 
 from typing import Any, Dict
 
