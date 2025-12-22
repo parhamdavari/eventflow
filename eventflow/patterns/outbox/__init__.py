@@ -7,4 +7,5 @@ This is a placeholder for future implementation.
 
 from eventflow.patterns.outbox.publisher import OutboxPublisher
 
+
 __all__ = ["OutboxPublisher"]

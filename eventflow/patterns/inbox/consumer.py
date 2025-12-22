@@ -13,7 +13,7 @@ import logging
 import os
 import socket
 from datetime import datetime
-from typing import Any, Dict, cast
+from typing import Any, cast
 from uuid import UUID
 
 from redis.asyncio import Redis
@@ -21,8 +21,8 @@ from redis.exceptions import ResponseError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from eventflow.core.events import BaseEvent
-from eventflow.patterns.inbox.models import EventInbox
 from eventflow.patterns.inbox.repository import EventInboxRepository
+
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +132,7 @@ class InboxConsumer:
 
         return True
 
-    async def _store_inbox_entry(self, stream_id: str, entry_data: Dict[str, Any]) -> bool:
+    async def _store_inbox_entry(self, stream_id: str, entry_data: dict[str, Any]) -> bool:
         """Parse and persist a stream entry into the inbox."""
         try:
             event = self._parse_event(stream_id, entry_data)
@@ -215,7 +215,7 @@ class InboxConsumer:
         """Acknowledge processing of the stream entry."""
         await self._redis.xack(self._stream_name, self._consumer_group, stream_id)
 
-    def _parse_event(self, stream_id: str, entry_data: Dict[str, Any]) -> BaseEvent:
+    def _parse_event(self, stream_id: str, entry_data: dict[str, Any]) -> BaseEvent:
         """
         Deserialize a Redis stream entry into a BaseEvent.
 

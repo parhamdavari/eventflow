@@ -18,7 +18,8 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, declarative_mixin
 from sqlalchemy.sql import func
 from sqlalchemy.types import JSON, TypeDecorator
@@ -26,8 +27,6 @@ from sqlalchemy.types import JSON, TypeDecorator
 
 class Base(DeclarativeBase):
     """Default Base for standalone EventFlow usage."""
-
-    pass
 
 
 class JSONBCompat(TypeDecorator):
@@ -143,5 +142,3 @@ class EventInbox(EventInboxMixin, Base):
     This uses EventFlow's default Base. If you want to use your own Base,
     use EventInboxMixin instead.
     """
-
-    pass
