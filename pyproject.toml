@@ -1,13 +1,14 @@
 [tool.poetry]
-name = "eventflow"
+name = "python-eventflow"
 version = "1.0.0"
 description = "Production-ready event-driven architecture toolkit with Transactional Inbox/Outbox patterns"
-authors = ["Your Organization <team@yourorg.com>"]
+authors = ["Parham Davari <parham.davarii@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/yourorg/eventflow"
-repository = "https://github.com/yourorg/eventflow"
-documentation = "https://github.com/yourorg/eventflow"
+homepage = "https://github.com/parhamdavari/eventflow"
+repository = "https://github.com/parhamdavari/eventflow"
+documentation = "https://github.com/parhamdavari/eventflow"
+packages = [{include = "eventflow"}]
 keywords = ["event-driven", "microservices", "inbox", "outbox", "redis-streams", "reliable-messaging"]
 classifiers = [
     "Development Status :: 4 - Beta",
