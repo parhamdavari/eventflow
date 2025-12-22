@@ -1,11 +1,12 @@
 """Common type definitions for EventFlow."""
 
-from typing import Any, Dict
+from typing import Any
+
 
 # Event-related types
 EventID = str
 EventType = str
-EventData = Dict[str, Any]
+EventData = dict[str, Any]
 StreamID = str
 MessageID = str
 

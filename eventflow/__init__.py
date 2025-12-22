@@ -12,6 +12,7 @@ from eventflow.patterns.inbox import InboxConsumer
 from eventflow.patterns.outbox import OutboxPublisher
 from eventflow.transports.redis_streams import RedisStreamsTransport
 
+
 __all__ = [
     "BaseEvent",
     "EventMetadata",

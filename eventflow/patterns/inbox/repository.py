@@ -8,7 +8,6 @@ Handles database operations for the event inbox.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional
 from uuid import UUID
 
 from sqlalchemy import func, or_, select
@@ -31,7 +30,7 @@ class EventInboxRepository:
         """
         self._session = session
 
-    async def insert_pending(self, event: BaseEvent) -> Optional[EventInbox]:
+    async def insert_pending(self, event: BaseEvent) -> EventInbox | None:
         """
         Insert an event as pending in the inbox.
 
@@ -124,7 +123,7 @@ class EventInboxRepository:
         await self._session.flush()
         return inbox
 
-    async def acquire_due_events(self, limit: int) -> List[EventInbox]:
+    async def acquire_due_events(self, limit: int) -> list[EventInbox]:
         """
         Acquire events that are ready to be processed.
 

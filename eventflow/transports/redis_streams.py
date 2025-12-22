@@ -6,8 +6,8 @@ Extracted and generified from rasa-mach redis_streams.py.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, Optional
 
 import redis.asyncio as redis
 
@@ -23,7 +23,7 @@ class RedisStreamsTransport:
         self,
         host: str = "localhost",
         port: int = 6379,
-        password: Optional[str] = None,
+        password: str | None = None,
         db: int = 0,
         decode_responses: bool = True,
         socket_keepalive: bool = True,
@@ -51,7 +51,7 @@ class RedisStreamsTransport:
         self.socket_keepalive = socket_keepalive
         self.socket_timeout = socket_timeout
         self.health_check_interval = health_check_interval
-        self._client: Optional[redis.Redis] = None
+        self._client: redis.Redis | None = None
 
     def build_client(self) -> redis.Redis:
         """

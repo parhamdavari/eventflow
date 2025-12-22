@@ -1,16 +1,14 @@
 """Tests for inbox pattern."""
 
-from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
 
 from eventflow.core.events import BaseEvent
-from eventflow.patterns.inbox.models import EventInbox
 from eventflow.patterns.inbox.repository import EventInboxRepository
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_insert_pending(session):
     """Test inserting event into inbox."""
     repo = EventInboxRepository(session)
@@ -28,7 +26,7 @@ async def test_insert_pending(session):
     assert inbox.retry_count == 0
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_insert_duplicate_returns_none(session):
     """Test that inserting duplicate event_id returns None."""
     repo = EventInboxRepository(session)
@@ -47,7 +45,7 @@ async def test_insert_duplicate_returns_none(session):
     assert inbox2 is None
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_mark_processing(session):
     """Test marking event as processing."""
     repo = EventInboxRepository(session)
@@ -62,7 +60,7 @@ async def test_mark_processing(session):
     assert inbox.status == "processing"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_mark_processed(session):
     """Test marking event as processed."""
     repo = EventInboxRepository(session)
@@ -80,7 +78,7 @@ async def test_mark_processed(session):
     assert inbox.error_message is None
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_acquire_due_events(session):
     """Test acquiring events ready for processing."""
     repo = EventInboxRepository(session)

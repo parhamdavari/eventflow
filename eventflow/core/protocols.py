@@ -7,7 +7,8 @@ Uses Python's Protocol for structural subtyping (duck typing with type checking)
 
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Dict, Protocol, runtime_checkable
+from collections.abc import AsyncIterator
+from typing import Any, Protocol, runtime_checkable
 
 from eventflow.core.events import BaseEvent
 
@@ -60,7 +61,7 @@ class Transport(Protocol):
 
     async def consume(
         self, stream_name: str, consumer_group: str, consumer_name: str, count: int = 10
-    ) -> AsyncIterator[tuple[str, Dict[str, Any]]]:
+    ) -> AsyncIterator[tuple[str, dict[str, Any]]]:
         """
         Consume events from a stream.
 

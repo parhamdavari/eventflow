@@ -3,8 +3,6 @@
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-import pytest
-
 from eventflow.core.events import BaseEvent, EventMetadata
 
 

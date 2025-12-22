@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any
 from uuid import UUID, uuid4
 
 
@@ -20,11 +20,11 @@ class EventMetadata:
     event_type: str
     aggregate_id: UUID
     occurred_on: datetime
-    correlation_id: Optional[str] = None
-    causation_id: Optional[str] = None
-    stream_id: Optional[str] = None
+    correlation_id: str | None = None
+    causation_id: str | None = None
+    stream_id: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert metadata to dictionary representation."""
         return {
             "event_id": self.event_id,
@@ -50,10 +50,10 @@ class BaseEvent:
     event_type: str = ""
     aggregate_id: UUID = field(default_factory=uuid4)
     occurred_on: datetime = field(default_factory=lambda: datetime.now(tz=timezone.utc))
-    payload: Dict[str, Any] = field(default_factory=dict)
-    correlation_id: Optional[str] = None
-    causation_id: Optional[str] = None
-    stream_id: Optional[str] = None
+    payload: dict[str, Any] = field(default_factory=dict)
+    correlation_id: str | None = None
+    causation_id: str | None = None
+    stream_id: str | None = None
 
     @property
     def metadata(self) -> EventMetadata:
@@ -68,7 +68,7 @@ class BaseEvent:
             stream_id=self.stream_id,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert event to dictionary representation."""
         return {
             "event_id": self.event_id,
@@ -82,7 +82,7 @@ class BaseEvent:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> BaseEvent:
+    def from_dict(cls, data: dict[str, Any]) -> BaseEvent:
         """
         Create event from dictionary representation.
 
