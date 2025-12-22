@@ -143,12 +143,22 @@ ignore = [
     "ISC001",  # Single-line implicit string concat (conflicts with Black)
     "PLR0913", # Too many arguments
     "PLR2004", # Magic value comparison
+    "TRY003",  # Avoid specifying long messages outside exception class
+    "TRY400",  # Use logging.exception instead of logging.error
+    "TRY401",  # Redundant exception in logging.exception
+    "EM101",   # Exception must not use a string literal
+    "EM102",   # Exception must not use an f-string literal
+    "BLE001",  # Do not catch blind exception
+    "DTZ005",  # datetime.now() without tz - we use tz=timezone.utc
+    "PTH123",  # open() should be replaced by Path.open()
+    "UP007",   # Use X | Y for type union (requires 3.10+ only syntax)
 ]
 fixable = ["ALL"]
 unfixable = []
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["S101", "PLR2004", "ARG", "SLF001"]
+"tests/**/*.py" = ["S101", "PLR2004", "ARG", "SLF001", "DTZ"]
+"tests/conftest.py" = ["S101", "PLR2004", "ARG", "SLF001"]
 "__init__.py" = ["F401"]
 
 [tool.ruff.lint.isort]

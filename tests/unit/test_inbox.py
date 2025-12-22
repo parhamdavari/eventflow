@@ -1,12 +1,10 @@
 """Tests for inbox pattern."""
 
-from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
 
 from eventflow.core.events import BaseEvent
-from eventflow.patterns.inbox.models import EventInbox
 from eventflow.patterns.inbox.repository import EventInboxRepository
 
 

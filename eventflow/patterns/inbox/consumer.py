@@ -13,7 +13,7 @@ import logging
 import os
 import socket
 from datetime import datetime
-from typing import Any, Callable, Dict, Optional, cast
+from typing import Any, Dict, cast
 from uuid import UUID
 
 from redis.asyncio import Redis
