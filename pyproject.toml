@@ -144,6 +144,7 @@ ignore = [
     "PLR0913", # Too many arguments
     "PLR2004", # Magic value comparison
     "TRY003",  # Avoid specifying long messages outside exception class
+    "TRY300",  # Consider moving statement to else block
     "TRY400",  # Use logging.exception instead of logging.error
     "TRY401",  # Redundant exception in logging.exception
     "EM101",   # Exception must not use a string literal
@@ -152,6 +153,10 @@ ignore = [
     "DTZ005",  # datetime.now() without tz - we use tz=timezone.utc
     "PTH123",  # open() should be replaced by Path.open()
     "UP007",   # Use X | Y for type union (requires 3.10+ only syntax)
+    "TCH001",  # Move application import into type-checking block
+    "TCH002",  # Move third-party import into type-checking block
+    "TCH003",  # Move standard library import into type-checking block
+    "PERF203", # try-except in loop (performance overhead acceptable here)
 ]
 fixable = ["ALL"]
 unfixable = []
