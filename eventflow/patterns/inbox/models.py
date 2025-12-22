@@ -20,9 +20,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.orm import DeclarativeBase, declarative_mixin
 from sqlalchemy.sql import func
-from sqlalchemy.types import JSON, TypeDecorator
+from sqlalchemy.types import JSON, TypeDecorator, TypeEngine
 
 
 class Base(DeclarativeBase):
@@ -40,7 +41,7 @@ class JSONBCompat(TypeDecorator):
     impl = JSONB
     cache_ok = True
 
-    def load_dialect_impl(self, dialect):
+    def load_dialect_impl(self, dialect: Dialect) -> TypeEngine:
         if dialect.name == "postgresql":
             return dialect.type_descriptor(JSONB(astext_type=Text()))
         return dialect.type_descriptor(JSON())

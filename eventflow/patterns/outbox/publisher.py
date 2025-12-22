@@ -13,7 +13,7 @@ class OutboxPublisher:
     This will be similar to the Inbox pattern but for producing events.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         raise NotImplementedError(
             "OutboxPublisher not yet implemented. "
             "This library currently provides the Inbox pattern (consumer side). "

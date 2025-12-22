@@ -138,13 +138,13 @@ class EventInboxRepository:
         stmt = (
             select(EventInbox)
             .where(
-                EventInbox.status.in_(["pending", "failed"]),  # type: ignore
+                EventInbox.status.in_(["pending", "failed"]),
                 or_(
-                    EventInbox.next_retry_at.is_(None),  # type: ignore
+                    EventInbox.next_retry_at.is_(None),
                     EventInbox.next_retry_at <= func.now(),
                 ),
             )
-            .order_by(EventInbox.received_at)  # type: ignore
+            .order_by(EventInbox.received_at)
             .limit(limit)
             .with_for_update(skip_locked=True)
         )
