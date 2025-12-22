@@ -6,12 +6,71 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION_DEFAULT: "3.11"
+  POETRY_VERSION: "1.8.4"
+
 jobs:
+  # ================================================================
+  # JOB 1: Quality Gate (runs first, fast-fails)
+  # ================================================================
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION_DEFAULT }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: ${{ env.POETRY_VERSION }}
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            venv-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Check formatting with Black
+        run: poetry run black --check --diff eventflow tests
+
+      - name: Lint with Ruff
+        run: poetry run ruff check eventflow tests
+
+      - name: Type check with MyPy
+        run: poetry run mypy eventflow
+
+      - name: Security check with Bandit
+        run: poetry run bandit -c pyproject.toml -r eventflow
+
+  # ================================================================
+  # JOB 2: Test Matrix (runs after quality passes)
+  # ================================================================
   test:
+    name: Test (Python ${{ matrix.python-version }})
+    needs: quality
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ["3.10", "3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v4
@@ -22,24 +81,30 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        uses: snok/install-poetry@v1
+        with:
+          version: ${{ env.POETRY_VERSION }}
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            venv-${{ runner.os }}-py${{ matrix.python-version }}-
 
       - name: Install dependencies
-        run: poetry install
+        run: poetry install --no-interaction
 
       - name: Run tests with coverage
-        run: poetry run pytest --cov=eventflow --cov-report=xml
+        run: poetry run pytest --cov=eventflow --cov-report=xml --cov-report=term-missing
 
-      - name: Type checking with mypy
-        run: poetry run mypy eventflow
-
-      - name: Code formatting check
-        run: poetry run black --check --diff eventflow tests
-
-      - name: Upload coverage
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.11'
         uses: codecov/codecov-action@v4
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}

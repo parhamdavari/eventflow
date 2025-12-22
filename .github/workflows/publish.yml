@@ -3,13 +3,61 @@ name: Publish to PyPI
 on:
   release:
     types: [published]
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (do not publish)"
+        required: false
+        default: "false"
+        type: boolean
+
+env:
+  PYTHON_VERSION: "3.11"
+  POETRY_VERSION: "1.8.4"
 
 jobs:
+  # ================================================================
+  # JOB 1: Quality Gate (mandatory before publish)
+  # ================================================================
+  quality-gate:
+    name: Pre-publish Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: ${{ env.POETRY_VERSION }}
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Run full quality suite
+        run: |
+          poetry run black --check eventflow tests
+          poetry run ruff check eventflow tests
+          poetry run mypy eventflow
+          poetry run bandit -c pyproject.toml -r eventflow
+          poetry run pytest --cov=eventflow --cov-fail-under=80
+
+  # ================================================================
+  # JOB 2: Build and Publish (only after quality passes)
+  # ================================================================
   publish:
+    name: Build and Publish
+    needs: quality-gate
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -17,18 +65,33 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: ${{ env.POETRY_VERSION }}
+
+      - name: Verify version matches tag
+        if: github.event_name == 'release'
         run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          POETRY_VERSION=$(poetry version -s)
+          if [ "$TAG_VERSION" != "$POETRY_VERSION" ]; then
+            echo "Error: Tag version ($TAG_VERSION) does not match pyproject.toml version ($POETRY_VERSION)"
+            exit 1
+          fi
 
       - name: Build package
         run: poetry build
 
+      - name: Verify package
+        run: |
+          pip install twine
+          twine check dist/*
+
       - name: Publish to PyPI
+        if: ${{ github.event.inputs.dry_run != 'true' }}
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
         run: poetry publish
-

@@ -1,0 +1,89 @@
+# Pre-commit configuration for eventflow
+# Install: poetry run pre-commit install
+# Run all: poetry run pre-commit run --all-files
+
+default_language_version:
+  python: python3.10
+
+default_stages: [pre-commit]
+
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit hooks
+  autofix_prs: true
+  autoupdate_schedule: weekly
+
+repos:
+  # ============================================================
+  # TIER 1: Fast checks (< 1 second) - Run first, fail fast
+  # ============================================================
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+        name: Validate YAML syntax
+      - id: check-toml
+        name: Validate TOML syntax
+      - id: check-json
+        name: Validate JSON syntax
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+        name: Prevent large file commits
+      - id: end-of-file-fixer
+        name: Fix end of file
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+        name: Enforce LF line endings
+      - id: debug-statements
+        name: Check for debug statements
+
+  # ============================================================
+  # TIER 2: Formatting (auto-fix) - 1-3 seconds
+  # ============================================================
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      # Ruff linter with auto-fix BEFORE Black
+      - id: ruff
+        name: Ruff linter (auto-fix)
+        args: [--fix, --exit-non-zero-on-fix]
+      # Ruff formatter
+      - id: ruff-format
+        name: Ruff formatter
+
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        name: Black formatter
+        language_version: python3.10
+
+  # ============================================================
+  # TIER 3: Static analysis (no auto-fix) - 3-10 seconds
+  # ============================================================
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        name: MyPy type checker
+        additional_dependencies:
+          - sqlalchemy[mypy]>=2.0
+          - types-redis
+        args: [--config-file=pyproject.toml]
+        # Only check eventflow, not tests (faster)
+        files: ^eventflow/
+
+  # ============================================================
+  # TIER 4: Security checks
+  # ============================================================
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.0
+    hooks:
+      - id: bandit
+        name: Bandit security linter
+        args: [-c, pyproject.toml]
+        additional_dependencies: ["bandit[toml]"]

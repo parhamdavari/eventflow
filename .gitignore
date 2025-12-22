@@ -56,4 +56,5 @@ Thumbs.db
 # Docs
 *.md
 !README.md
+!CONTRIBUTING.md
 
