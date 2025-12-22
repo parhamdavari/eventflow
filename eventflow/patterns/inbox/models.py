@@ -26,6 +26,7 @@ from sqlalchemy.types import JSON, TypeDecorator
 
 class Base(DeclarativeBase):
     """Default Base for standalone EventFlow usage."""
+
     pass
 
 
