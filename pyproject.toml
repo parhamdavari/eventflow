@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "python-eventflow"
-version = "1.0.0"
+version = "1.0.1"
 description = "Production-ready event-driven architecture toolkit with Transactional Inbox/Outbox patterns"
 authors = ["Parham Davari <parham.davarii@gmail.com>"]
 license = "MIT"
