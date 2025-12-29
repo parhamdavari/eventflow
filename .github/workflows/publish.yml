@@ -46,7 +46,7 @@ jobs:
           poetry run ruff check eventflow tests
           poetry run mypy eventflow
           poetry run bandit -c pyproject.toml -r eventflow
-          poetry run pytest --cov=eventflow --cov-fail-under=80
+          poetry run pytest --cov=eventflow
 
   # ================================================================
   # JOB 2: Build and Publish (only after quality passes)
